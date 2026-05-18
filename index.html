@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>D-RayAvatar: Dynamic Ray-tracing based Relightable Gaussian Avatar from Monocular Videos</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Noto Sans Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- MathJax for Equations -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']]
+            }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    
+    <style>
+        body {
+            font-family: 'Noto Sans', sans-serif;
+            scroll-behavior: smooth;
+        }
+        .gradient-text {
+            background: linear-gradient(to right, #2563eb, #9333ea);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .hero-bg {
+            background: radial-gradient(circle at top right, #eff6ff, #ffffff);
+        }
+        /* Custom scrollbar for galleries */
+        .gallery-scroll::-webkit-scrollbar {
+            height: 8px;
+        }
+        .gallery-scroll::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        .gallery-scroll::-webkit-scrollbar-thumb {
+            background: #c7c7c7;
+            border-radius: 4px;
+        }
+        .gallery-scroll::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+    </style>
+</head>
+<body class="bg-white text-gray-800">
+
+    <!-- Navigation -->
+    <nav class="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-100 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex-shrink-0 font-bold text-xl tracking-tighter cursor-pointer hover:opacity-80 transition" onclick="window.scrollTo(0,0)">
+                    <span class="text-blue-600">D-RayAvatar</span>
+                </div>
+                <div class="hidden md:flex space-x-8">
+                    <a href="#abstract" class="text-gray-600 hover:text-blue-600 transition font-medium">Abstract</a>
+                    <a href="#video" class="text-gray-600 hover:text-blue-600 transition font-medium">Video</a>
+                    <a href="#method" class="text-gray-600 hover:text-blue-600 transition font-medium">Method</a>
+                    <a href="#gallery" class="text-gray-600 hover:text-blue-600 transition font-medium">Reconstruction</a>
+                    <a href="#results" class="text-gray-600 hover:text-blue-600 transition font-medium"> comparisons</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Header -->
+    <header class="hero-bg pt-20 pb-16 text-center px-4">
+        <div class="max-w-6xl mx-auto">
+            <h1 class="text-4xl md:text-6xl font-extrabold mb-8 leading-tight tracking-tight">
+                <span class="gradient-text">D-RayAvatar</span>: Dynamic Ray-tracing based Relightable Gaussian Avatar <br class="hidden md:block"> from Monocular Videos
+            </h1>
+            
+            <div class="flex flex-wrap justify-center gap-x-8 gap-y-2 text-lg mb-8 text-blue-600 font-medium">
+                <span class="hover:underline cursor-pointer">Zhe Fan<sup>1</sup>,</span>
+                <span class="hover:underline cursor-pointer">
+                <a href="https://shishenghuang.github.io/index/">Shi-Sheng Huang</a><sup>2</sup>,</span>
+                <span class="hover:underline cursor-pointer">
+                ZhaoChen Li<sup>2</sup>,
+                </span>
+                <span class="hover:underline cursor-pointer">
+                <a href="https://vmcl.bnu.edu.cn/group/teacher/dcdaea79b5e54b75b532795109a85a34.htm">Hua Huang</a><sup>2</sup>,
+                </span>               
+            </div>
+            <div class="flex flex-wrap text-gray-500 justify-center gap-x-8 gap-y-2 text-lg mb-8 font-medium">
+                <span ><sup>1</sup>Beijing Institute of Technology,</span>
+                <span ><sup>2</sup>Beijing Normal University</span>
+            </div>            
+
+            <!-- Links -->
+            <div class="flex justify-center gap-4 mb-12">
+                <a href="#" class="flex items-center gap-2 bg-gray-900 text-white px-6 py-3 rounded-full hover:bg-gray-700 transition shadow-lg hover:shadow-xl hover:-translate-y-0.5 transform">
+                    <i class="fa-regular fa-file-pdf"></i>
+                    <span>Paper</span>
+                </a>
+                <a href="#" class="flex items-center gap-2 bg-gray-900 text-white px-6 py-3 rounded-full hover:bg-gray-700 transition shadow-lg hover:shadow-xl hover:-translate-y-0.5 transform">
+                    <i class="fa-regular fa-file-lines"></i>
+                    <span>Supp. Material</span>
+                </a>
+                <a href="#" class="flex items-center gap-2 bg-gray-800 text-white px-6 py-3 rounded-full hover:bg-gray-600 transition shadow-lg hover:shadow-xl hover:-translate-y-0.5 transform">
+                    <i class="fa-brands fa-github"></i>
+                    <span>Code(coming soon)</span>
+                </a>
+            </div>
+
+            <!-- Teaser Image -->
+            <div class="max-w-5xl mx-auto mb-10">
+                <div class="bg-gray-100 rounded-2xl overflow-hidden shadow-2xl border border-gray-300">
+                    <img src="teaser_0404.jpg" alt="D-RayAvatar Teaser Figure" class="w-full h-auto">
+                </div>
+                <p class="mt-4 text-sm text-gray-500 italic w-full text-left">
+                    <strong>Figure 1:</strong> D-RayAvatar achieves accurate monocular avatar reconstruction and realistic, global illumination-aware relighting via dynamic ray-tracing
+                </p>
+            </div>
+        </div>
+    </header>
+
+    <!-- Abstract -->
+    <section id="abstract" class="py-12 bg-white border-b border-gray-100">
+        <div class="max-w-4xl mx-auto px-6">
+            <h2 class="text-3xl font-bold text-center mb-8 text-gray-900">Abstract</h2>
+            <p class="text-justify text-lg leading-relaxed text-gray-600">
+                The success of 3D Gaussian Splatting has inspired a series of Gaussian-based 4D avatars, some of which enable remarkable relighting. However, since the original 3DGS is limited to capture advanced illumination, the relighting quality of the latest 4D Gaussian avatars still need to be improved. The recent Gaussian ray-tracer has shown impressive potential to capture secondary ray-based illumination for static scenes, but costs too huge computation to be directly applied for dynamic avatars. In this paper, we propose a new <strong>Dynamic Ray-tracing based Gaussian Splatting (D-RayGS)</strong>, which tailors for relightable Gaussian avatar reconstruction to simulate the inter-reflective illumination between Gaussian primitives for high-fidelity avatar inverse rendering, while performing the Gaussian ray-tracing in a fast speed. Based on the D-RayGS, we introduce a highly accurate joint learning of both the dynamic geometry, BRDF materials and lighting, using a compact regularization from an extra signed distance field. Benefiting from the D-RayGS and learning, we build a relightable Gaussian avatar reconstruction from monocular videos, i.e., <strong>D-RayAvatar</strong>, which enables high fidelity relightable rendering quality while performing the dynamic rendering efficiently. Extensive evaluation on public datasets show that our D-RayAvatar can achieve better Gaussian avatar reconstruction in both geometry reconstruction quality and relightable rendering quality.
+            </p>
+        </div>
+    </section>
+
+    <!-- Demo Video -->
+    <section id="video" class="py-16 bg-gray-50">
+        <div class="max-w-5xl mx-auto px-6">
+            <h2 class="text-3xl font-bold text-center mb-10 text-gray-900">
+                <i class="fa-solid fa-clapperboard text-blue-600 mr-2"></i> Demo Video
+            </h2>
+            <div class="rounded-2xl overflow-hidden shadow-2xl border border-gray-200 bg-black">
+                <!-- Video Player -->
+                <video class="w-full aspect-video" controls poster="">
+                    <source src="DrayAvatar_video.mp4" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+            </div>
+            <p class="text-center mt-4 text-gray-600">
+                This video presents comparisons with SOTA methods for relightable avatar reconstruction from monocular videos.
+            </p>
+          
+        </div>
+    </section>
+
+    <!-- Method -->
+    <section id="method" class="py-20 bg-white">
+        <div class="max-w-6xl mx-auto px-6">
+            <h2 class="text-3xl font-bold text-center mb-16 text-gray-900">Methodology</h2>
+            
+            <div class="bg-white p-2 md:p-4 rounded-2xl shadow-lg border border-gray-100 mb-12">
+                <div class="rounded-xl overflow-hidden bg-white">
+                    <img src="overviewnew_new.jpg" alt="Overall Pipeline" class="w-full h-auto object-contain">
+                </div>
+                
+                <p class="mt-4 text-gray-600 text-sm font-medium">
+                    <strong>Figure 2: The main pipeline of D-RayAvatar.</strong> 
+                    <!-- Canonical Gaussian Rig Reconstruction &rarr; AU-prompt Gaussian Diffusion &rarr; Text-to-AU Emotion Controller. -->
+                    Given monocular video input, we propose to reconstruct the Gaussian avatar represented by relightable 2D Gaussian primitives, which enables efficient inverse rendering using dynamic ray-tracing based Gaussian splatting (D-RayGS).
+                    We deform the relightable canonical Gaussian attributes $\bar{g}$ to deformed $g$ using motion deformation $\mathcal{D}^m$ and shape deformation $\mathcal{D}^s$, then compute its Gaussian-level PBR color $c_{pbr}(\omega_0)$ by performing ray-tracing embedded Physically Based Rendering directly on each $g$, and aggregate the PBR color image by splatting all the Gaussians using a PBR splatting. 
+                    The D-RayGS is learnt to be compact with the geometric regularization from an extra SDF field for high quality relightable rendering. 
+                </p>
+            </div>
+
+            <!-- <div class="grid md:grid-cols-2 gap-12">
+                <div class="space-y-6">
+                    <h3 class="text-2xl font-bold text-gray-800 border-l-4 border-blue-600 pl-4">AU-prompt Gaussian Diffusion</h3>
+                    <p class="text-gray-600 leading-relaxed">
+                        Our model encodes audio signals into Action Unit (AU) codes using a <strong>Speech-to-AU Encoder</strong>. These codes guide a Transformer-based diffusion model to predict fine-grained facial motion and Gaussian attributes.
+                    </p>
+                </div>
+
+                <div class="space-y-6">
+                    <h3 class="text-2xl font-bold text-gray-800 border-l-4 border-purple-600 pl-4">Text-to-AU Emotion Controller</h3>
+                    <p class="text-gray-600 leading-relaxed">
+                        This module establishes a direct mapping from textual emotion prompts (e.g., <em>"The person is smiling"</em>) to AU activation vectors. It allows for precise, semantic-level emotional editing without retraining the core rendering network.
+                    </p>
+                </div>
+            </div> -->
+        </div>
+    </section>
+
+    <!-- Gallery: Text-Driven Editing -->
+    <section id="gallery" class="py-20 bg-gray-50">
+        <div class="max-w-7xl mx-auto px-6">
+            <h2 class="text-3xl font-bold text-center mb-4 text-gray-900">Avatar Reconstruction Evaluation</h2>
+            <p class="text-center text-gray-500 mb-12">
+             the D-RayAvatar reconstruction results of one subject from our collected dataset, including the geometry, materials, and relightable rendering results.
+            </p>
+
+            <div class="mb-16">
+                <!-- <div class="flex items-center gap-3 mb-6">
+                    <div class="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold shadow-md">1</div>
+                    <h3 class="text-xl font-bold text-gray-800">Basic & Complex Emotions</h3>
+                </div> -->
+                
+                <div class="bg-white p-2 md:p-3 rounded-xl shadow-lg border border-gray-200">
+                    <div class="overflow-hidden rounded-lg bg-white">
+                            <img src="prpperty_new_instance.jpg" alt="Basic & Complex Emotions" class="block mx-auto h-auto object-contain rounded border border-gray-100" style="width:80%;">
+                    </div>
+                    <!-- <p class="mt-4 text-sm text-gray-600 px-2 pb-2">
+                        <strong>Figure 3:</strong> The visual results of our D-RayAvatar reconstruction.
+                    </p> -->
+                </div>
+            </div>
+            
+            <!-- <div class="mb-16">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-10 h-10 rounded-full bg-purple-600 flex items-center justify-center text-white font-bold shadow-md">2</div>
+                    <h3 class="text-xl font-bold text-gray-800">Fine-grained Expression Control</h3>
+                </div>
+            
+                <div class="bg-white p-2 md:p-3 rounded-xl shadow-lg border border-gray-200">
+                    <div class="overflow-hidden rounded-lg bg-white">
+                        <img src="supp_fig4.png" alt="Fine-grained Expression Control" class="w-full h-auto object-contain">
+                    </div>
+                    <p class="mt-4 text-sm text-gray-600 px-2 pb-2">
+                        <strong>Figure 4:</strong> Handling nuanced prompts such as <em>"An excited person with a radiant smile"</em> or <em>"A shy person with evasive eyes"</em>.
+                    </p>
+                </div>
+            </div>
+            
+            <div class="mb-10">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold shadow-md">3</div>
+                    <h3 class="text-xl font-bold text-gray-800">Intense Emotional States</h3>
+                </div>
+            
+                <div class="bg-white p-2 md:p-3 rounded-xl shadow-lg border border-gray-200">
+                    <div class="overflow-hidden rounded-lg bg-white">
+                        <img src="supp_fig5.png" alt="Intense Emotional States" class="w-full h-auto object-contain">
+                    </div>
+                    <p class="mt-4 text-sm text-gray-600 px-2 pb-2">
+                        <strong>Figure 5:</strong> Demonstrating robustness with intense emotions like <em>"A fearful person filled with fear"</em> and <em>"An angry man, fierce and imposing"</em>.
+                    </p>
+                </div>
+            </div> -->
+
+        </div>
+    </section>
+
+    <!-- Results Comparison -->
+    <section id="results" class="py-20 bg-white">
+        <div class="max-w-6xl mx-auto px-6">
+            <h2 class="text-3xl font-bold text-center mb-6 text-gray-900">Reconstruction Comparison</h2>
+                <p class="text-center text-gray-600 mb-12 max-w-5xl mx-auto">
+                Reconstruction Comparison against SOTA methods, including both relightable and non-relightable methods.
+            </p>
+            
+            <!-- Scrollable Comparison Gallery -->
+            <div class="bg-gray-50 rounded-xl p-6 border border-gray-200 shadow-inner mb-12">
+                
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold shadow-md">1</div>
+                    <h3 class="text-xl font-bold text-gray-800">Qualitative comparison</h3>
+                </div> 
+
+                <div class="overflow-x-auto gallery-scroll pb-4">
+                    <div class="min-w-[1000px] bg-white rounded-lg border border-gray-300 shadow-sm p-4 space-y-6">
+                        
+                        <div>
+                            <!-- <span class="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full mb-2 font-semibold">Sample 1</span> -->
+                            <img src="reconstruction.jpg" alt="Comparison Sample 1" class="w-full h-auto block mx-auto rounded border border-gray-100" style="width: 85%;">
+                        </div>
+            
+                        <!-- <hr class="border-dashed border-gray-200">
+            
+                        <div>
+                            <span class="inline-block bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded-full mb-2 font-semibold">Sample 2</span>
+                            <img src="demo12.png" alt="Comparison Sample 2" class="w-full h-auto block rounded border border-gray-100">
+                        </div>
+            
+                        <hr class="border-dashed border-gray-200">
+            
+                        <div>
+                            <span class="inline-block bg-indigo-100 text-indigo-800 text-xs px-2 py-1 rounded-full mb-2 font-semibold">Sample 3</span>
+                            <img src="demo13.png" alt="Comparison Sample 3" class="w-full h-auto block rounded border border-gray-100">
+                        </div> -->
+            
+                    </div>
+                </div>
+                
+                <p class="text-center text-xs text-gray-400 mt-1">
+                    Qualitative comparison across five different identities.
+                </p>
+
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold shadow-md">2</div>
+                    <h3 class="text-xl font-bold text-gray-800">Quantitative Comparison</h3>
+                </div>                
+                <div class="overflow-x-auto">
+                    <h3 class="font-bold text-lg mb-4 text-left md:text-center">Quantitative comparison on the test set of our collected dataset from different comparison approaches.</h3>
+                    <table class="min-w-full text-sm text-center border-collapse">
+                        <thead>
+                            <tr class="bg-gray-900 text-white">
+                                <th class="py-3 px-4 rounded-tl-lg">Method</th>
+                                <th class="py-3 px-4">PSNR ↑</th>
+                                <th class="py-3 px-4">SSIM ↑</th>
+                                <th class="py-3 px-4">LPIPS ↓</th>
+                                <th class="py-3 px-4">MSE ↓</th>
+                                <th class="py-3 px-4 rounded-tr-lg">L1 ↓</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white border border-gray-200 shadow-sm">
+                            <tr class="border-b hover:bg-gray-50 transition">
+                                <td class="py-3 px-4 font-medium text-gray-600">FLARE</td>
+                                <td class="py-3 px-4">25.6670</td>
+                                <td class="py-3 px-4">0.9122</td>
+                                <td class="py-3 px-4">0.0592</td>
+                                <td class="py-3 px-4">0.05921</td>
+                                <td class="py-3 px-4">0.0123</td>
+                            </tr>
+                            <tr class="border-b hover:bg-gray-50 transition">
+                                <td class="py-3 px-4 font-medium text-gray-600">INSTA</td>
+                                <td class="py-3 px-4">26.6980</td>
+                                <td class="py-3 px-4">0.9268</td>
+                                <td class="py-3 px-4">0.0912</td>
+                                <td class="py-3 px-4">0.0509</td>
+                                <td class="py-3 px-4">0.0151</td>
+                            </tr>
+                            <tr class="border-b hover:bg-gray-50 transition">
+                                <td class="py-3 px-4 font-medium text-gray-600">SPLAvatar</td>
+                                <td class="py-3 px-4">25.6255</td>
+                                <td class="py-3 px-4">0.9223</td>
+                                <td class="py-3 px-4">0.0979</td>
+                                <td class="py-3 px-4">0.0533</td>
+                                <td class="py-3 px-4">0.0139</td>
+                            </tr>
+                            <tr class="border-b hover:bg-gray-50 transition">
+                                <td class="py-3 px-4 font-medium text-gray-600">FlashAvatar</td>
+                                <td class="py-3 px-4">28.7674</td>
+                                <td class="py-3 px-4">0.9415</td>
+                                <td class="py-3 px-4">0.0563</td>
+                                <td class="py-3 px-4">0.0406</td>
+                                <td class="py-3 px-4">0.0110</td>
+                            </tr>
+                            <tr class="border-b hover:bg-gray-50 transition">
+                                <td class="py-3 px-4 font-medium text-gray-600">GBS(Gaussian Blendshapes)</td>
+                                <td class="py-3 px-4">27.9699</td>
+                                <td class="py-3 px-4">0.9390</td>
+                                <td class="py-3 px-4">0.1051</td>
+                                <td class="py-3 px-4">0.0436</td>
+                                <td class="py-3 px-4">0.0126</td>
+                            </tr>
+                            <tr class="border-b hover:bg-gray-50 transition">
+                                <td class="py-3 px-4 font-medium text-gray-600">HRAvatar</td>
+                                <td class="py-3 px-4">29.3708</td>
+                                <td class="py-3 px-4">0.9407</td>
+                                <td class="py-3 px-4">0.0776</td>
+                                <td class="py-3 px-4">0.0414</td>
+                                <td class="py-3 px-4">0.0121</td>
+                            </tr>
+                            <tr class="bg-blue-50 hover:bg-blue-100 transition border-l-4 border-blue-500">
+                                <td class="py-3 px-4 font-bold text-blue-800">Ours</td>
+                                <td class="py-3 px-4 font-bold text-blue-800">29.9664</td>
+                                <td class="py-3 px-4 font-bold text-blue-800">0.9431</td>
+                                <td class="py-3 px-4 font-bold text-blue-800">0.0557</td>
+                                <td class="py-3 px-4 font-bold text-blue-800">0.0350</td>
+                                <td class="py-3 px-4 font-bold text-blue-800">0.0101</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>            
+            </div>
+            
+            <h2 class="text-3xl font-bold text-center mb-6 text-gray-900">Relighting Comparison</h2>
+            <p class="text-left text-gray-600 mb-12 max-w-5xl mx-auto">
+                Relighting Comparison against SOTA methods (FLARE, RGAvatar, HRAvatar) under different illumination, showing <strong>more faithful and detailed prediction of albedos, and enhanced relighting quality with superior specular highlights and realistic self-shadows</strong>.
+            </p>
+            <div class="bg-gray-50 rounded-xl p-6 border border-gray-200 shadow-inner mb-12">
+                <div class="overflow-x-auto gallery-scroll pb-4">
+                    <div class="min-w-[1000px] bg-white rounded-lg border border-gray-300 shadow-sm p-4 space-y-6">
+                        
+                        <div>
+                            <span class="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full mb-2 font-semibold">Sample 1</span>
+                            <img src="relighting_compare_sample1.jpg" alt="Comparison Sample 1" class="w-full h-auto block rounded border border-gray-100">
+                        </div>
+            
+                        <hr class="border-dashed border-gray-200">
+            
+                        <div>
+                            <span class="inline-block bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded-full mb-2 font-semibold">Sample 2</span>
+                            <img src="relighting_compare_sample2.jpg" alt="Comparison Sample 2" class="w-full h-auto block rounded border border-gray-100">
+                        </div>
+            
+                        <hr class="border-dashed border-gray-200">
+            
+                        <div>
+                            <span class="inline-block bg-indigo-100 text-indigo-800 text-xs px-2 py-1 rounded-full mb-2 font-semibold">Sample 3</span>
+                            <img src="relighting_compare_sample3.jpg" alt="Comparison Sample 3" class="w-full h-auto block rounded border border-gray-100">
+                        </div>
+                        
+                        <hr class="border-dashed border-gray-200">
+
+                        <div>
+                            <span class="inline-block bg-indigo-100 text-indigo-800 text-xs px-2 py-1 rounded-full mb-2 font-semibold">Sample 4</span>
+                            <img src="relighting_compare_sample4.jpg" alt="Comparison Sample 3" class="w-full h-auto block rounded border border-gray-100">
+                        </div>
+                    </div>
+                </div>
+                
+                <p class="text-center text-xs text-gray-400 mt-1">
+                    Qualitative comparison across four different identities.
+                </p>
+            </div>
+
+            <!-- <h2 class="text-3xl font-bold text-center mb-6 text-gray-900">Dynamic Comparison</h2>
+            <p class="text-center text-gray-600 mb-12 max-w-3xl mx-auto">
+                Relighting Comparison with FLARE (FLARE, RGAvatar, HRAvatar).
+            </p>             -->
+            <!-- Quantitative Table -->
+            <!-- <div class="overflow-x-auto">
+                <h3 class="font-bold text-lg mb-4 text-left md:text-center">Quantitative comparison on the test set of our collected dataset from different comparison approaches.</h3>
+                <table class="min-w-full text-sm text-center border-collapse">
+                    <thead>
+                        <tr class="bg-gray-900 text-white">
+                            <th class="py-3 px-4 rounded-tl-lg">Method</th>
+                            <th class="py-3 px-4">PSNR ↑</th>
+                            <th class="py-3 px-4">SSIM ↑</th>
+                            <th class="py-3 px-4">LPIPS ↓</th>
+                            <th class="py-3 px-4">MSE ↓</th>
+                            <th class="py-3 px-4 rounded-tr-lg">L1 ↓</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white border border-gray-200 shadow-sm">
+                        <tr class="border-b hover:bg-gray-50 transition">
+                            <td class="py-3 px-4 font-medium text-gray-600">FLARE</td>
+                            <td class="py-3 px-4">25.6670</td>
+                            <td class="py-3 px-4">0.9122</td>
+                            <td class="py-3 px-4">0.0592</td>
+                            <td class="py-3 px-4">0.05921</td>
+                            <td class="py-3 px-4">0.0123</td>
+                        </tr>
+                        <tr class="border-b hover:bg-gray-50 transition">
+                            <td class="py-3 px-4 font-medium text-gray-600">INSTA</td>
+                            <td class="py-3 px-4">26.6980</td>
+                            <td class="py-3 px-4">0.9268</td>
+                            <td class="py-3 px-4">0.0912</td>
+                            <td class="py-3 px-4">0.0509</td>
+                            <td class="py-3 px-4">0.0151</td>
+                        </tr>
+                        <tr class="border-b hover:bg-gray-50 transition">
+                            <td class="py-3 px-4 font-medium text-gray-600">SPLAvatar</td>
+                            <td class="py-3 px-4">25.6255</td>
+                            <td class="py-3 px-4">0.9223</td>
+                            <td class="py-3 px-4">0.0979</td>
+                            <td class="py-3 px-4">0.0533</td>
+                            <td class="py-3 px-4">0.0139</td>
+                        </tr>
+                        <tr class="border-b hover:bg-gray-50 transition">
+                            <td class="py-3 px-4 font-medium text-gray-600">FlashAvatar</td>
+                            <td class="py-3 px-4">28.7674</td>
+                            <td class="py-3 px-4">0.9415</td>
+                            <td class="py-3 px-4">0.0563</td>
+                            <td class="py-3 px-4">0.0406</td>
+                            <td class="py-3 px-4">0.0110</td>
+                        </tr>
+                        <tr class="border-b hover:bg-gray-50 transition">
+                            <td class="py-3 px-4 font-medium text-gray-600">GBS</td>
+                            <td class="py-3 px-4">27.9699</td>
+                            <td class="py-3 px-4">0.9390</td>
+                            <td class="py-3 px-4">0.1051</td>
+                            <td class="py-3 px-4">0.0436</td>
+                            <td class="py-3 px-4">0.0126</td>
+                        </tr>
+                        <tr class="border-b hover:bg-gray-50 transition">
+                            <td class="py-3 px-4 font-medium text-gray-600">HRAvatar</td>
+                            <td class="py-3 px-4">29.3708</td>
+                            <td class="py-3 px-4">0.9407</td>
+                            <td class="py-3 px-4">0.0776</td>
+                            <td class="py-3 px-4">0.0414</td>
+                            <td class="py-3 px-4">0.0121</td>
+                        </tr>
+                        <tr class="bg-blue-50 hover:bg-blue-100 transition border-l-4 border-blue-500">
+                            <td class="py-3 px-4 font-bold text-blue-800">Ours</td>
+                            <td class="py-3 px-4 font-bold text-blue-800">29.9664</td>
+                            <td class="py-3 px-4 font-bold text-blue-800">0.9431</td>
+                            <td class="py-3 px-4 font-bold text-blue-800">0.0557</td>
+                            <td class="py-3 px-4 font-bold text-blue-800">0.0350</td>
+                            <td class="py-3 px-4 font-bold text-blue-800">0.0101</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div> -->
+        </div>
+    </section>
+
+
+    
+    <!-- Citation -->
+    <section id="bibtex" class="py-16 bg-gray-50">
+        <div class="max-w-4xl mx-auto px-6">
+            <h2 class="text-3xl font-bold text-gray-900 mb-6">Citation</h2>
+            <div class="relative bg-gray-900 rounded-xl p-6 shadow-xl overflow-hidden group">
+                <button onclick="copyBibtex()" class="absolute top-4 right-4 text-gray-400 hover:text-white transition p-2 rounded-md hover:bg-gray-700" title="Copy to Clipboard">
+                    <i class="fa-regular fa-copy"></i>
+                </button>
+                <pre class="text-gray-300 font-mono text-sm overflow-x-auto whitespace-pre-wrap leading-relaxed" id="bibtex-content">@article{DRayAvatar2026,
+  title={D-RayAvatar: Dynamic Ray-tracing based Relightable Gaussian Avatar from Monocular Videos},
+  note={Arxiv soon}
+
+}</pre>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-gray-100 py-10 text-center text-gray-500 text-sm">
+        <p>© 2026 DRayAvatar Project. All Rights Reserved.</p>
+        <!-- <div class="mt-4 flex justify-center space-x-4">
+            <a href="#" class="hover:text-blue-600 transition"><i class="fa-brands fa-github text-xl"></i></a>
+            <a href="#" class="hover:text-blue-600 transition"><i class="fa-brands fa-twitter text-xl"></i></a>
+        </div> -->
+    </footer>
+
+    <script>
+        function copyBibtex() {
+            const content = document.getElementById('bibtex-content').innerText;
+            navigator.clipboard.writeText(content).then(() => {
+                const btn = document.querySelector('button[onclick="copyBibtex()"] i');
+                btn.className = 'fa-solid fa-check text-green-400';
+                setTimeout(() => {
+                    btn.className = 'fa-regular fa-copy';
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+            });
+        }
+    </script>
+</body>
+</html>
